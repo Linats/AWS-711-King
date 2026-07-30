@@ -1,0 +1,211 @@
+{
+  "version": 1,
+  "users": [
+    {
+      "id": "u-admin",
+      "username": "admin",
+      "displayName": "系统管理员",
+      "role": "admin",
+      "passwordHash": "$2a$10$t2/uGNzzCkuTnZ430l.E2uFxjTqW1sTALpVUAnlna9Ny1xyyB6VWm",
+      "createdAt": "2026-07-30T02:31:03.468Z"
+    },
+    {
+      "id": "u-operator",
+      "username": "operator",
+      "displayName": "运营人员",
+      "role": "operator",
+      "passwordHash": "$2a$10$t2/uGNzzCkuTnZ430l.E2uFxjTqW1sTALpVUAnlna9Ny1xyyB6VWm",
+      "createdAt": "2026-07-30T02:31:03.468Z"
+    },
+    {
+      "id": "u-verifier",
+      "username": "verifier",
+      "displayName": "核销人员",
+      "role": "verifier",
+      "passwordHash": "$2a$10$t2/uGNzzCkuTnZ430l.E2uFxjTqW1sTALpVUAnlna9Ny1xyyB6VWm",
+      "createdAt": "2026-07-30T02:31:03.468Z"
+    },
+    {
+      "id": "u-customer-a",
+      "username": "customer_a",
+      "displayName": "用户 A",
+      "role": "customer",
+      "passwordHash": "$2a$10$t2/uGNzzCkuTnZ430l.E2uFxjTqW1sTALpVUAnlna9Ny1xyyB6VWm",
+      "createdAt": "2026-07-30T02:31:03.468Z"
+    },
+    {
+      "id": "u-customer-b",
+      "username": "customer_b",
+      "displayName": "用户 B",
+      "role": "customer",
+      "passwordHash": "$2a$10$t2/uGNzzCkuTnZ430l.E2uFxjTqW1sTALpVUAnlna9Ny1xyyB6VWm",
+      "createdAt": "2026-07-30T02:31:03.468Z"
+    },
+    {
+      "id": "u-customer-c",
+      "username": "customer_c",
+      "displayName": "用户 C",
+      "role": "customer",
+      "passwordHash": "$2a$10$t2/uGNzzCkuTnZ430l.E2uFxjTqW1sTALpVUAnlna9Ny1xyyB6VWm",
+      "createdAt": "2026-07-30T02:31:03.468Z"
+    }
+  ],
+  "refreshTokens": [
+    {
+      "id": "e1a1d5c8-c69d-4c58-87f3-53321ed5764c",
+      "userId": "u-admin",
+      "tokenHash": "6ec8608a3f4c2a352bd664ce62827329021bd608377d8f0802f6f49ac201dde4",
+      "expiresAt": "2026-08-29T02:49:43.288Z",
+      "createdAt": "2026-07-30T02:49:43.288Z"
+    },
+    {
+      "id": "a6b70570-2997-4c88-aa40-e428744ea28f",
+      "userId": "u-customer-a",
+      "tokenHash": "2d8c493dd7cc622040fc76bcb141052dc78a9b17ae12b7ad5e6d310eaf75e4fc",
+      "expiresAt": "2026-08-29T02:49:43.647Z",
+      "createdAt": "2026-07-30T02:49:43.647Z"
+    }
+  ],
+  "campaigns": [
+    {
+      "id": "c-summer",
+      "name": "夏日清凉满减券",
+      "description": "满 50 元可用，适用于全场商品",
+      "couponType": "fixed",
+      "value": 10,
+      "totalStock": 1000,
+      "remainingStock": 638,
+      "perUserLimit": 1,
+      "startTime": "2026-07-28T02:31:03.470Z",
+      "endTime": "2026-08-19T02:31:03.470Z",
+      "status": "active",
+      "rules": {
+        "minimumSpend": 50
+      },
+      "metadata": {},
+      "createdBy": "u-operator",
+      "createdAt": "2026-07-30T02:31:03.468Z",
+      "updatedAt": "2026-07-30T02:31:03.468Z"
+    },
+    {
+      "id": "c-new",
+      "name": "新用户专享礼券",
+      "description": "新用户首单无门槛使用",
+      "couponType": "fixed",
+      "value": 20,
+      "totalStock": 500,
+      "remainingStock": 126,
+      "perUserLimit": 1,
+      "startTime": "2026-07-25T02:31:03.470Z",
+      "endTime": "2026-08-09T02:31:03.470Z",
+      "status": "active",
+      "rules": {},
+      "metadata": {},
+      "createdBy": "u-operator",
+      "createdAt": "2026-07-30T02:31:03.468Z",
+      "updatedAt": "2026-07-30T02:31:03.468Z"
+    },
+    {
+      "id": "c-coffee",
+      "name": "周末咖啡折扣券",
+      "description": "周末指定咖啡品类 8 折",
+      "couponType": "discount",
+      "value": 8,
+      "totalStock": 800,
+      "remainingStock": 417,
+      "perUserLimit": 2,
+      "startTime": "2026-07-29T02:31:03.470Z",
+      "endTime": "2026-09-03T02:31:03.470Z",
+      "status": "active",
+      "rules": {},
+      "metadata": {},
+      "createdBy": "u-operator",
+      "createdAt": "2026-07-30T02:31:03.468Z",
+      "updatedAt": "2026-07-30T02:31:03.468Z"
+    },
+    {
+      "id": "c-draft",
+      "name": "国庆预热活动",
+      "description": "尚未发布的运营活动",
+      "couponType": "fixed",
+      "value": 30,
+      "totalStock": 2000,
+      "remainingStock": 2000,
+      "perUserLimit": 1,
+      "startTime": "2026-08-29T02:31:03.470Z",
+      "endTime": "2026-09-08T02:31:03.470Z",
+      "status": "draft",
+      "rules": {},
+      "metadata": {},
+      "createdBy": "u-operator",
+      "createdAt": "2026-07-30T02:31:03.468Z",
+      "updatedAt": "2026-07-30T02:31:03.468Z"
+    }
+  ],
+  "coupons": [
+    {
+      "id": "cp-demo",
+      "campaignId": "c-new",
+      "userId": "u-customer-a",
+      "code": "CP-DEMO-2026-001",
+      "status": "claimed",
+      "claimedAt": "2026-07-29T02:31:03.470Z",
+      "expiresAt": "2026-08-09T02:31:03.470Z",
+      "metadata": {}
+    }
+  ],
+  "claimRecords": [
+    {
+      "id": "cl-demo",
+      "campaignId": "c-new",
+      "userId": "u-customer-a",
+      "couponId": "cp-demo",
+      "result": "issued",
+      "riskScore": 10,
+      "riskDecision": "pass",
+      "requestId": "seed",
+      "createdAt": "2026-07-29T02:31:03.470Z"
+    }
+  ],
+  "riskRecords": [
+    {
+      "id": "r-demo",
+      "userId": "u-customer-b",
+      "campaignId": "c-summer",
+      "source": "ai",
+      "riskScore": 65,
+      "decision": "review",
+      "reasons": [
+        "短时间请求频率异常"
+      ],
+      "reviewStatus": "pending",
+      "createdAt": "2026-07-30T02:31:03.470Z"
+    }
+  ],
+  "verifications": [],
+  "auditLogs": [
+    {
+      "id": "11eac773-2594-4415-a67e-c3e4d8e3b887",
+      "requestId": "8aa93282-8169-4999-b796-034be1226f3a",
+      "actorId": "u-customer-a",
+      "action": "auth.login",
+      "outcome": "success",
+      "resourceType": "user",
+      "resourceId": "u-customer-a",
+      "detail": {},
+      "createdAt": "2026-07-30T02:49:43.651Z"
+    },
+    {
+      "id": "8488a107-6cb0-4d8c-ba35-10b1868a5ec8",
+      "requestId": "d56af420-5b91-4549-a327-43556f88357e",
+      "actorId": "u-admin",
+      "action": "auth.login",
+      "outcome": "success",
+      "resourceType": "user",
+      "resourceId": "u-admin",
+      "detail": {},
+      "createdAt": "2026-07-30T02:49:43.295Z"
+    }
+  ],
+  "aiCallLogs": []
+}

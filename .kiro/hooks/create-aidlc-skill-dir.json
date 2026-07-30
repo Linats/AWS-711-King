@@ -1,0 +1,14 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Create AIDLC Skill Directory",
+      "trigger": "PreToolUse",
+      "description": "Create aidlc-vibe-coding skill directory",
+      "action": {
+        "type": "command",
+        "command": "New-Item -ItemType Directory -Path \"C:\\Users\\41517\\.kiro\\skills\\aidlc-vibe-coding\" -Force"
+      }
+    }
+  ]
+}

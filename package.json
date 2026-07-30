@@ -1,0 +1,16 @@
+{
+  "name": "coupon-center",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": ["src/shared", "src/backend", "src/frontend"],
+  "engines": { "node": ">=20.0.0", "npm": ">=10.0.0" },
+  "scripts": {
+    "dev:backend": "npm run dev -w @coupon/backend",
+    "dev:frontend": "npm run dev -w @coupon/frontend",
+    "build": "npm run build -w @coupon/shared && npm run build -w @coupon/backend && npm run build -w @coupon/frontend",
+    "typecheck": "npm run typecheck -w @coupon/shared && npm run typecheck -w @coupon/backend && npm run typecheck -w @coupon/frontend",
+    "test": "npm run test -w @coupon/backend && npm run test -w @coupon/frontend",
+    "lint": "npm run lint -w @coupon/backend && npm run lint -w @coupon/frontend",
+    "db:seed": "npm run db:seed -w @coupon/backend"
+  }
+}

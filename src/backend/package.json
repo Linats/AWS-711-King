@@ -1,0 +1,46 @@
+{
+  "name": "@coupon/backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/server.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src tests --ext .ts",
+    "test": "vitest run",
+    "db:seed": "tsx src/db/seed.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock": "3.758.0",
+    "@aws-sdk/client-bedrock-runtime": "3.758.0",
+    "@coupon/shared": "1.0.0",
+    "bcryptjs": "2.4.3",
+    "cookie-parser": "1.4.7",
+    "cors": "2.8.5",
+    "express": "4.21.2",
+    "helmet": "8.0.0",
+    "jsonwebtoken": "9.0.2",
+    "pino": "9.6.0",
+    "pino-http": "10.4.0",
+    "zod": "3.24.2"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "2.4.6",
+    "@types/cookie-parser": "1.4.8",
+    "@types/cors": "2.8.17",
+    "@types/express": "5.0.0",
+    "@types/jsonwebtoken": "9.0.9",
+    "@types/node": "22.13.9",
+    "@types/supertest": "6.0.2",
+    "@typescript-eslint/eslint-plugin": "8.26.0",
+    "@typescript-eslint/parser": "8.26.0",
+    "eslint": "8.57.1",
+    "supertest": "7.0.0",
+    "tsx": "4.19.3",
+    "typescript": "5.7.3",
+    "vitest": "2.1.9"
+  }
+}
