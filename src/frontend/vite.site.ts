@@ -5,8 +5,8 @@ import type { UserConfig } from 'vite';
 /** 四个角色站点各自独立构建、独立端口、独立产物目录 */
 export type SiteId = 'customer' | 'operator' | 'verifier' | 'admin';
 
-/** customer 是主站，占用默认端口 5173 */
-export const sitePorts: Record<SiteId, number> = { customer: 5173, operator: 5174, verifier: 5175, admin: 5176 };
+// 兼容旧配置文件时也固定使用统一端口；正式 dev/build 入口为 vite.config.ts。
+export const sitePorts: Record<SiteId, number> = { customer: 5173, operator: 5173, verifier: 5173, admin: 5173 };
 
 const resolvePath = (relative: string) => fileURLToPath(new URL(relative, import.meta.url));
 

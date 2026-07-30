@@ -40,12 +40,16 @@ export interface SiteDefinition {
   loginHint: string;
   /** 该站点允许登录的演示账号 */
   accountUsernames: string[];
+  /** 是否开放自助注册；admin 站点为 false，管理员账号只能由系统预置 */
+  allowsSelfRegistration: boolean;
+  /** 注册页文案；不开放注册的站点用 registerNotice 说明原因 */
+  registerTitle: string;
+  registerHint: string;
+  registerNotice: string;
   theme: SiteTheme;
 }
 
-const devPorts: Record<SiteId, number> = { customer: 5173, operator: 5174, verifier: 5175, admin: 5176 };
-
-/** 部署时用 VITE_SITE_*_URL 覆盖为真实域名；开发环境退回本地端口。 */
+/** 部署时可用 VITE_SITE_*_URL 覆盖；默认在当前 origin 下使用角色路径。 */
 const configuredUrls: Record<SiteId, unknown> = {
   customer: import.meta.env.VITE_SITE_CUSTOMER_URL,
   operator: import.meta.env.VITE_SITE_OPERATOR_URL,
@@ -56,7 +60,7 @@ const configuredUrls: Record<SiteId, unknown> = {
 function resolveUrl(id: SiteId): string {
   const configured = configuredUrls[id];
   if (typeof configured === 'string' && configured.trim()) return configured.trim().replace(/\/+$/, '');
-  return `http://localhost:${devPorts[id]}`;
+  return `/${id}`;
 }
 
 export const siteDefinitions: Record<SiteId, SiteDefinition> = {
@@ -86,6 +90,10 @@ export const siteDefinitions: Record<SiteId, SiteDefinition> = {
     loginWelcome: '欢迎回来',
     loginHint: '使用普通用户账号登录，浏览推荐活动并领取优惠券',
     accountUsernames: ['customer_a', 'customer_b', 'customer_c'],
+    allowsSelfRegistration: true,
+    registerTitle: '注册普通用户',
+    registerHint: '注册后即可浏览推荐活动、领取优惠券并管理自己的券包',
+    registerNotice: '注册即创建普通用户账号，不包含任何后台管理权限。',
     theme: {
       primary: '#5b6df9',
       soft: '#eef0ff',
@@ -121,6 +129,10 @@ export const siteDefinitions: Record<SiteId, SiteDefinition> = {
     loginWelcome: '运营工作台',
     loginHint: '仅运营人员账号可进入，用于活动配置与风控人工审核',
     accountUsernames: ['operator'],
+    allowsSelfRegistration: true,
+    registerTitle: '注册运营人员',
+    registerHint: '注册后可创建与维护活动、变更活动状态并审核风控待办',
+    registerNotice: '运营账号可修改线上活动与放行风控请求，请按团队规范申请；后端配置员工注册码后需要填写。',
     theme: {
       primary: '#0d9488',
       soft: '#e4f7f4',
@@ -156,6 +168,10 @@ export const siteDefinitions: Record<SiteId, SiteDefinition> = {
     loginWelcome: '门店核销',
     loginHint: '仅核销人员账号可进入，用于券码核销与核销记录查询',
     accountUsernames: ['verifier'],
+    allowsSelfRegistration: true,
+    registerTitle: '注册核销人员',
+    registerHint: '注册后可在门店核销优惠券并查询核销记录',
+    registerNotice: '核销账号可将顾客券码置为已使用，请按门店规范申请；后端配置员工注册码后需要填写。',
     theme: {
       primary: '#16a34a',
       soft: '#e6f8ec',
@@ -191,6 +207,10 @@ export const siteDefinitions: Record<SiteId, SiteDefinition> = {
     loginWelcome: '平台监管',
     loginHint: '仅管理员账号可进入，用于查看统计数据与审计日志',
     accountUsernames: ['admin'],
+    allowsSelfRegistration: false,
+    registerTitle: '管理员账号不开放注册',
+    registerHint: '管理员拥有全平台数据与审计权限，只能由系统预置或由现有管理员开通',
+    registerNotice: '本站点不提供注册入口；如需管理员权限请联系系统管理员。',
     theme: {
       primary: '#7c3aed',
       soft: '#f1ebff',

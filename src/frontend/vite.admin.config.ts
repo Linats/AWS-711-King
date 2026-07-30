@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite';
 import { createSiteConfig } from './vite.site';
 
-// 数据与审计中心，开发端口 5176
+// 数据与审计中心兼容配置；与其他角色共用 5173，正式入口使用 vite.config.ts
 export default defineConfig(createSiteConfig('admin'));

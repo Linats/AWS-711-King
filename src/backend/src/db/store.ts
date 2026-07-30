@@ -1,9 +1,9 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { dirname, isAbsolute, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import type { CampaignStatus, CouponStatus, ReviewStatus, RiskDecision, Role } from '@coupon/shared';
-import { config } from '../config.js';
+import { backendRoot, config } from '../config.js';
 
 export interface User { id:string; username:string; passwordHash:string; role:Role; displayName:string; createdAt:string; }
 export interface RefreshToken { id:string; userId:string; tokenHash:string; expiresAt:string; revokedAt?:string; replacedById?:string; createdAt:string; }
@@ -16,7 +16,11 @@ export interface AuditLog { id:string; requestId:string; actorId?:string; action
 export interface AiCallLog { id:string; requestId:string; userId?:string; purpose:string; authMode:string; modelId:string; durationMs:number; status:string; fallbackReason?:string; createdAt:string; }
 export interface DatabaseState { version:1; users:User[]; refreshTokens:RefreshToken[]; campaigns:Campaign[]; coupons:Coupon[]; claimRecords:ClaimRecord[]; riskRecords:RiskRecord[]; verifications:Verification[]; auditLogs:AuditLog[]; aiCallLogs:AiCallLog[]; }
 
-const filePath = resolve(config.DATABASE_FILE);
+const defaultFilePath = resolve(backendRoot, 'data/local-db.json');
+const legacyDemoFilePath = resolve(backendRoot, 'data/demo-db.json');
+const filePath = isAbsolute(config.DATABASE_FILE)
+  ? resolve(config.DATABASE_FILE)
+  : resolve(backendRoot, config.DATABASE_FILE);
 const iso = (offsetDays=0) => new Date(Date.now()+offsetDays*86_400_000).toISOString();
 
 async function seedState(): Promise<DatabaseState> {
@@ -41,7 +45,29 @@ class JsonDatabase {
   private queue:Promise<void>=Promise.resolve();
   readonly ready:Promise<void>;
   constructor(){ this.ready=this.load(); }
-  private async load(){ await mkdir(dirname(filePath),{recursive:true}); try{ this.state=JSON.parse(await readFile(filePath,'utf8')) as DatabaseState; }catch(error){ if((error as NodeJS.ErrnoException).code!=='ENOENT') throw error; this.state=await seedState(); await this.persist(); } }
+  private async load(){
+    await mkdir(dirname(filePath),{recursive:true});
+    try{
+      this.state=JSON.parse(await readFile(filePath,'utf8')) as DatabaseState;
+      return;
+    }catch(error){
+      if((error as NodeJS.ErrnoException).code!=='ENOENT') throw error;
+    }
+
+    // 首次升级时复制旧演示库，保留用户已经写入 demo-db.json 的本地数据。
+    if(filePath===defaultFilePath){
+      try{
+        this.state=JSON.parse(await readFile(legacyDemoFilePath,'utf8')) as DatabaseState;
+        await this.persist();
+        return;
+      }catch(error){
+        if((error as NodeJS.ErrnoException).code!=='ENOENT') throw error;
+      }
+    }
+
+    this.state=await seedState();
+    await this.persist();
+  }
   private async persist(){ const temp=`${filePath}.${process.pid}.${Date.now()}.tmp`; await writeFile(temp,JSON.stringify(this.state,null,2),'utf8'); await rename(temp,filePath); }
   async read<T>(reader:(state:Readonly<DatabaseState>)=>T|Promise<T>):Promise<T>{ await this.ready; await this.queue; return reader(this.state); }
   async write<T>(writer:(state:DatabaseState)=>T|Promise<T>):Promise<T>{ await this.ready; let result!:T; const operation=this.queue.then(async()=>{ result=await writer(this.state); await this.persist(); }); this.queue=operation.then(()=>undefined,()=>undefined); await operation; return result; }

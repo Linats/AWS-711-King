@@ -1,6 +1,38 @@
 export const roles = ['admin', 'operator', 'customer', 'verifier'] as const;
 export type Role = (typeof roles)[number];
 
+/** 允许自助注册的角色；admin 只能由系统预置，不对外开放注册。 */
+export const selfServiceRoles = ['customer', 'operator', 'verifier'] as const;
+export type SelfServiceRole = (typeof selfServiceRoles)[number];
+export function isSelfServiceRole(value: string): value is SelfServiceRole {
+  return (selfServiceRoles as readonly string[]).includes(value);
+}
+
+/** 账号与密码规则，前后端共用同一套口径。 */
+export const usernamePattern = /^[a-zA-Z0-9_]{3,32}$/;
+export const passwordRules = { minLength: 8, maxLength: 72 } as const;
+export function checkPassword(password: string): { ok: boolean; message?: string } {
+  if (password.length < passwordRules.minLength) return { ok: false, message: `密码至少 ${passwordRules.minLength} 位` };
+  if (password.length > passwordRules.maxLength) return { ok: false, message: `密码最多 ${passwordRules.maxLength} 位` };
+  if (!/[a-zA-Z]/.test(password) || !/\d/.test(password)) return { ok: false, message: '密码需同时包含字母和数字' };
+  return { ok: true };
+}
+
+export interface RegisterInput {
+  username: string;
+  password: string;
+  displayName?: string;
+  role: SelfServiceRole;
+  /** 可选员工注册码：后端配置了 REGISTRATION_STAFF_CODE 时，operator/verifier 注册必填 */
+  staffCode?: string;
+}
+
+export interface AuthSession {
+  accessToken: string;
+  expiresIn: number;
+  user: UserSummary;
+}
+
 export const campaignStatuses = ['draft', 'active', 'paused', 'sold_out', 'expired', 'deleted'] as const;
 export type CampaignStatus = (typeof campaignStatuses)[number];
 export const couponStatuses = ['claimed', 'verified', 'expired', 'revoked'] as const;
@@ -97,6 +129,9 @@ export interface ApiErrorBody {
 export const errorCodes = {
   VALIDATION_ERROR: 'VALIDATION_ERROR',
   AUTH_INVALID_CREDENTIALS: 'AUTH_INVALID_CREDENTIALS',
+  AUTH_USERNAME_TAKEN: 'AUTH_USERNAME_TAKEN',
+  AUTH_ROLE_NOT_REGISTRABLE: 'AUTH_ROLE_NOT_REGISTRABLE',
+  AUTH_STAFF_CODE_INVALID: 'AUTH_STAFF_CODE_INVALID',
   AUTH_TOKEN_EXPIRED: 'AUTH_TOKEN_EXPIRED',
   AUTH_REFRESH_INVALID: 'AUTH_REFRESH_INVALID',
   AUTH_INSUFFICIENT_PERMISSIONS: 'AUTH_INSUFFICIENT_PERMISSIONS',

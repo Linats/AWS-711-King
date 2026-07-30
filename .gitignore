@@ -10,3 +10,5 @@ test-results/
 .DS_Store
 .vscode/
 src/backend/prisma/*.db
+src/backend/data/local-db.json
+src/backend/data/*.tmp

@@ -20,7 +20,7 @@ export default function VerifyPage() {
       <Text type="secondary">演示可用券码：CP-DEMO-2026-001</Text>
       <Form
         form={form} layout="vertical" size="large"
-        onFinish={(values: { code: string; order: string }) => setResult(verify(values.code.trim(), values.order.trim()))}
+        onFinish={async (values: { code: string; order: string }) => setResult(await verify(values.code.trim(), values.order.trim()))}
         initialValues={{ code: 'CP-DEMO-2026-001', order: `ORDER-${Date.now().toString().slice(-6)}` }}
       >
         <Form.Item name="code" label="优惠券码" rules={[{ required: true }]}><Input prefix={<GiftOutlined />} /></Form.Item>

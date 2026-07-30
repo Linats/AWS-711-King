@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import {
   App as AntApp, Avatar, Button, Card, ConfigProvider, Drawer, Dropdown, Form, Input, Layout, Menu,
   Result, Space, Tag, theme, Tooltip, Typography
@@ -11,6 +11,8 @@ import {
 import { demoUsers, roleLabel } from '@/demo';
 import { SiteLinkRow } from '@/components/common/SiteLinks';
 import { NotFoundPage } from '@/components/common/AsyncState';
+import RegisterPage from '@/pages/auth/RegisterPage';
+import { getApiError } from '@/services/api';
 import { DEMO_PASSWORD, DemoProvider } from './DemoProvider';
 import { useDemo } from './demo-context';
 import { applySiteTheme, mainSite, otherSites, siteDefinitions, type SiteDefinition } from './site-config';
@@ -35,7 +37,9 @@ export default function SiteApp({ site, routes }: { site: SiteDefinition; routes
         <DemoProvider>
           <AntApp>
             <Routes>
-              <Route path="/login" element={<LoginPage />} />
+              <Route path={`${site.home}/login`} element={<LoginPage />} />
+              {/* 管理员站点不挂载注册路由 */}
+              {site.allowsSelfRegistration ? <Route path={`${site.home}/register`} element={<RegisterPage />} /> : null}
               <Route path="*" element={<SiteLayout routes={routes} />} />
             </Routes>
           </AntApp>
@@ -47,25 +51,29 @@ export default function SiteApp({ site, routes }: { site: SiteDefinition; routes
 
 function LoginPage() {
   const site = useSite();
-  const { user, login } = useDemo();
+  const { user, login, logout } = useDemo();
   const navigate = useNavigate();
   const { message, modal } = AntApp.useApp();
   if (user) return <Navigate to={site.home} replace />;
 
-  const submit = (values: { username: string; password: string }) => {
-    const account = demoUsers[values.username];
-    if (!account || values.password !== DEMO_PASSWORD) return message.error('用户名或密码错误');
-    if (account.role !== site.role) {
-      const target = siteDefinitions[account.role];
-      return modal.confirm({
-        title: `该账号是${roleLabel[account.role]}`,
-        content: `${site.brandName}只服务${site.audience}。${roleLabel[account.role]}请前往「${target.brandName}」（${target.url}）。`,
-        okText: `前往${target.brandName}`,
-        cancelText: '留在本站',
-        onOk: () => { window.location.href = target.url; }
-      });
+  const submit = async (values: { username: string; password: string }) => {
+    try {
+      const authenticated = await login(values.username, values.password);
+      if (authenticated.role !== site.role) {
+        const target = siteDefinitions[authenticated.role];
+        await logout();
+        return modal.confirm({
+          title: `该账号是${roleLabel[authenticated.role]}`,
+          content: `${site.brandName}只服务${site.audience}。${roleLabel[authenticated.role]}请前往「${target.brandName}」（${target.url}）。`,
+          okText: `前往${target.brandName}`,
+          cancelText: '留在本站',
+          onOk: () => { window.location.href = target.url; }
+        });
+      }
+      navigate(site.home);
+    } catch (error) {
+      message.error(getApiError(error).message);
     }
-    if (login(values.username, values.password)) navigate(site.home);
   };
 
   return <div className="login-screen">
@@ -90,6 +98,11 @@ function LoginPage() {
         <Form.Item name="password" label="密码" rules={[{ required: true }]}><Input.Password placeholder={DEMO_PASSWORD} /></Form.Item>
         <Button type="primary" htmlType="submit" block size="large" icon={<LoginOutlined />}>进入{site.brandName}</Button>
       </Form>
+      <div className="login-register">
+        {site.allowsSelfRegistration
+          ? <Text type="secondary">还没有账号？<Link to={`${site.home}/register`}>注册{roleLabel[site.role]}</Link></Text>
+          : <Text type="secondary">{site.registerNotice}</Text>}
+      </div>
       <div className="demo-accounts">
         <Text type="secondary">本站可用演示账号</Text>
         <div className="account-grid">{site.accountUsernames.map((username) => {
@@ -116,7 +129,7 @@ function SiteLayout({ routes }: { routes: SiteRoute[] }) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobile, setMobile] = useState(false);
   const [dark, setDark] = useState(false);
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to={`${site.home}/login`} replace />;
   if (user.role !== site.role) return <WrongSite />;
 
   const menu = <Menu mode="inline" selectedKeys={[location.pathname]} items={site.nav} onClick={({ key }) => { navigate(key); setMobile(false); }} />;
@@ -162,7 +175,7 @@ function SiteLayout({ routes }: { routes: SiteRoute[] }) {
               { type: 'divider' },
               { key: 'logout', label: '退出登录', icon: <LogoutOutlined />, danger: true }
             ],
-            onClick: ({ key }) => { if (key === 'logout') { logout(); navigate('/login'); } }
+            onClick: ({ key }) => { if (key === 'logout') { logout(); navigate(`${site.home}/login`); } }
           }}>
             <Button type="text" className="user-button">
               <Avatar>{user.displayName[0]}</Avatar>

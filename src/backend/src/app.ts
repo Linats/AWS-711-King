@@ -6,8 +6,9 @@ import express, { type Request } from 'express';
 import helmet from 'helmet';
 import { z } from 'zod';
 import type { CampaignStatus, Role } from '@coupon/shared';
+import { checkPassword, isSelfServiceRole, roles, usernamePattern } from '@coupon/shared';
 import { config, corsOrigins } from './config.js';
-import { databaseFile, db, type Campaign } from './db/store.js';
+import { databaseFile, db, type Campaign, type User } from './db/store.js';
 import { BedrockService } from './integrations/bedrock.js';
 import { allowRoles, authenticate, createRefreshToken, hashToken, signAccessToken } from './lib/auth.js';
 import { AppError, asyncHandler, errorHandler, notFoundHandler, ok, pageArgs, paginated, sanitize } from './lib/http.js';
@@ -24,7 +25,47 @@ const requireItem=<T>(item:T|undefined,code:string,message:string):T=>{if(!item)
 
 app.get('/api/v1/health',asyncHandler(async(_req,res)=>{await db.ready;return ok(res,{status:'ok',database:'json-file',databaseFile,ai:'optional',timestamp:new Date().toISOString()});}));
 
-app.post('/api/v1/auth/login',asyncHandler(async(req,res)=>{const input=z.object({username:z.string().min(1),password:z.string().min(1)}).parse(req.body);const user=await db.read(s=>s.users.find(u=>u.username===input.username));if(!user||!await bcrypt.compare(input.password,user.passwordHash)){await audit(req,'auth.login','failure',undefined,undefined,{username:input.username});throw new AppError(401,'AUTH_INVALID_CREDENTIALS','用户名或密码错误');}req.auth={userId:user.id,username:user.username,role:user.role};const refresh=createRefreshToken();await db.write(s=>s.refreshTokens.push({id:db.id(),userId:user.id,tokenHash:refresh.hash,expiresAt:new Date(Date.now()+config.REFRESH_TOKEN_TTL_DAYS*86400000).toISOString(),createdAt:new Date().toISOString()}));res.cookie(config.COOKIE_NAME,refresh.raw,{httpOnly:true,sameSite:'lax',secure:config.NODE_ENV==='production',path:'/api/v1/auth',maxAge:config.REFRESH_TOKEN_TTL_DAYS*86400000});await audit(req,'auth.login','success','user',user.id);return ok(res,{accessToken:signAccessToken({sub:user.id,username:user.username,role:user.role}),expiresIn:config.ACCESS_TOKEN_TTL_SECONDS,user:dtoUser(user)},'登录成功');}));
+async function issueSession(req:Request,res:express.Response,user:User){
+  req.auth={userId:user.id,username:user.username,role:user.role};
+  const refresh=createRefreshToken();
+  await db.write(s=>s.refreshTokens.push({id:db.id(),userId:user.id,tokenHash:refresh.hash,expiresAt:new Date(Date.now()+config.REFRESH_TOKEN_TTL_DAYS*86400000).toISOString(),createdAt:new Date().toISOString()}));
+  res.cookie(config.COOKIE_NAME,refresh.raw,{httpOnly:true,sameSite:'lax',secure:config.NODE_ENV==='production',path:'/api/v1/auth',maxAge:config.REFRESH_TOKEN_TTL_DAYS*86400000});
+  return {accessToken:signAccessToken({sub:user.id,username:user.username,role:user.role}),expiresIn:config.ACCESS_TOKEN_TTL_SECONDS,user:dtoUser(user)};
+}
+
+app.post('/api/v1/auth/login',asyncHandler(async(req,res)=>{const input=z.object({username:z.string().min(1),password:z.string().min(1)}).parse(req.body);const user=await db.read(s=>s.users.find(u=>u.username===input.username));if(!user||!await bcrypt.compare(input.password,user.passwordHash)){await audit(req,'auth.login','failure',undefined,undefined,{username:input.username});throw new AppError(401,'AUTH_INVALID_CREDENTIALS','用户名或密码错误');}const session=await issueSession(req,res,user);await audit(req,'auth.login','success','user',user.id);return ok(res,session,'登录成功');}));
+
+// 自助注册：仅 customer/operator/verifier；admin 只能由系统预置，任何请求都不得创建管理员。
+const registerSchema=z.object({
+  username:z.string().trim().regex(usernamePattern,'账号需为 3-32 位字母、数字或下划线'),
+  password:z.string().min(1),
+  displayName:z.string().trim().min(1).max(32).optional(),
+  role:z.enum(roles),
+  staffCode:z.string().trim().optional()
+});
+app.post('/api/v1/auth/register',asyncHandler(async(req,res)=>{
+  const input=registerSchema.parse(req.body);
+  if(!isSelfServiceRole(input.role)){
+    await audit(req,'auth.register','denied',undefined,undefined,{username:input.username,role:input.role});
+    throw new AppError(403,'AUTH_ROLE_NOT_REGISTRABLE','管理员账号不支持自助注册，请联系系统管理员开通');
+  }
+  const strength=checkPassword(input.password);
+  if(!strength.ok)throw new AppError(400,'VALIDATION_ERROR',strength.message??'密码不符合要求');
+  if(config.REGISTRATION_STAFF_CODE&&input.role!=='customer'&&input.staffCode!==config.REGISTRATION_STAFF_CODE){
+    await audit(req,'auth.register','denied',undefined,undefined,{username:input.username,role:input.role,reason:'staff code mismatch'});
+    throw new AppError(403,'AUTH_STAFF_CODE_INVALID','员工注册码不正确，请向管理员索取');
+  }
+  const passwordHash=await bcrypt.hash(input.password,10);
+  const user=await db.write(s=>{
+    if(s.users.some(u=>u.username.toLowerCase()===input.username.toLowerCase()))throw new AppError(409,'AUTH_USERNAME_TAKEN','该账号已被注册，请更换账号名');
+    const created:User={id:db.id(),username:input.username,passwordHash,role:input.role as Role,displayName:input.displayName??input.username,createdAt:new Date().toISOString()};
+    s.users.push(created);
+    return created;
+  });
+  const session=await issueSession(req,res,user);
+  await audit(req,'auth.register','success','user',user.id,{role:user.role});
+  return ok(res,session,'注册成功',201);
+}));
 app.post('/api/v1/auth/refresh',asyncHandler(async(req,res)=>{const raw=req.cookies?.[config.COOKIE_NAME] as string|undefined;if(!raw)throw new AppError(401,'AUTH_REFRESH_INVALID','刷新令牌无效');const next=createRefreshToken();const user=await db.write(s=>{const current=s.refreshTokens.find(t=>t.tokenHash===hashToken(raw));if(!current||current.revokedAt||new Date(current.expiresAt)<=new Date())throw new AppError(401,'AUTH_REFRESH_INVALID','刷新令牌无效或已撤销');const user=requireItem(s.users.find(u=>u.id===current.userId),'AUTH_REFRESH_INVALID','用户不存在');const replacement={id:db.id(),userId:user.id,tokenHash:next.hash,expiresAt:new Date(Date.now()+config.REFRESH_TOKEN_TTL_DAYS*86400000).toISOString(),createdAt:new Date().toISOString()};current.revokedAt=new Date().toISOString();current.replacedById=replacement.id;s.refreshTokens.push(replacement);return user;});res.cookie(config.COOKIE_NAME,next.raw,{httpOnly:true,sameSite:'lax',secure:config.NODE_ENV==='production',path:'/api/v1/auth',maxAge:config.REFRESH_TOKEN_TTL_DAYS*86400000});return ok(res,{accessToken:signAccessToken({sub:user.id,username:user.username,role:user.role}),expiresIn:config.ACCESS_TOKEN_TTL_SECONDS});}));
 app.post('/api/v1/auth/logout',asyncHandler(async(req,res)=>{const raw=req.cookies?.[config.COOKIE_NAME] as string|undefined;if(raw)await db.write(s=>{const token=s.refreshTokens.find(t=>t.tokenHash===hashToken(raw));if(token&&!token.revokedAt)token.revokedAt=new Date().toISOString();});res.clearCookie(config.COOKIE_NAME,{path:'/api/v1/auth'});return ok(res,{},'已退出登录');}));
 app.get('/api/v1/auth/me',authenticate,asyncHandler(async(req,res)=>ok(res,dtoUser(requireItem(await db.read(s=>s.users.find(u=>u.id===req.auth!.userId)),'AUTH_TOKEN_EXPIRED','用户不存在')))));

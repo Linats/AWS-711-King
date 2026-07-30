@@ -185,6 +185,28 @@
   "verifications": [],
   "auditLogs": [
     {
+      "id": "ce00bb06-19fd-4bde-ac61-54f77f6e6bf7",
+      "requestId": "218d6cfd-9293-4b63-ae0a-e0c20a86666c",
+      "action": "auth.register",
+      "outcome": "denied",
+      "detail": {
+        "username": "try_admin2",
+        "role": "admin"
+      },
+      "createdAt": "2026-07-30T05:54:31.130Z"
+    },
+    {
+      "id": "827558aa-3403-4cc4-88c0-455d7b9ab619",
+      "requestId": "778a4ae7-9a0f-4b9e-a681-7da1d57dd5fc",
+      "action": "auth.register",
+      "outcome": "denied",
+      "detail": {
+        "username": "try_admin",
+        "role": "admin"
+      },
+      "createdAt": "2026-07-30T05:41:23.057Z"
+    },
+    {
       "id": "11eac773-2594-4415-a67e-c3e4d8e3b887",
       "requestId": "8aa93282-8169-4999-b796-034be1226f3a",
       "actorId": "u-customer-a",

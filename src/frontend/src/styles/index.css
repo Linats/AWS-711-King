@@ -70,3 +70,8 @@ body { margin: 0; min-width: 320px; background: #f5f7fb; }
 .sider-main-link { display:block; margin-bottom:8px; text-align:center; font-size:13px; }
 @media(max-width:1024px){ .site-links { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:767px){ .site-links { grid-template-columns:1fr; } .site-link-copy { min-height:0; } }
+
+/* 自助注册 */
+.login-register { margin-top:16px; padding-top:14px; border-top:1px dashed #e4e7ef; font-size:13px; }
+.register-notice { margin-top:18px; }
+.login-card .register-notice + .login-form { margin-top:20px; }

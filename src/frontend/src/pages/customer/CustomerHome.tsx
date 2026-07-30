@@ -8,6 +8,7 @@ import { useSite } from '@/app/site-context';
 import { CampaignCard } from '@/components/common/CampaignCard';
 import { EmptyState } from '@/components/common/AsyncState';
 import { SiteLinkCards } from '@/components/common/SiteLinks';
+import { getApiError } from '@/services/api';
 import { PageHeader } from '@/components/common/Page';
 
 const { Text, Title, Paragraph } = Typography;
@@ -20,12 +21,15 @@ export default function CustomerHome() {
   const [flying, setFlying] = useState(false);
   const active = campaigns.filter((item) => item.status === 'active');
 
-  const doClaim = (campaign: CampaignDto) => {
-    const coupon = claim(campaign);
-    if (!coupon) return message.warning('你已经领取过这张券了');
-    message.success(`领取成功，券码 ${coupon.code}`);
-    setFlying(true);
-    setTimeout(() => setFlying(false), 900);
+  const doClaim = async (campaign: CampaignDto) => {
+    try {
+      const coupon = await claim(campaign);
+      message.success(`领取成功，券码 ${coupon.code}`);
+      setFlying(true);
+      setTimeout(() => setFlying(false), 900);
+    } catch (error) {
+      message.warning(getApiError(error).message);
+    }
   };
 
   return <>
