@@ -26,7 +26,8 @@ export const initialCoupons: CouponDto[] = [
   { id: 'cp3', campaignId: 'c1', code: 'CP-DEMO-2026-003', status: 'expired', campaignName: '夏日清凉满减券', value: 10, claimedAt: past(40), expiresAt: past(10) }
 ];
 
-export const initialRisks: Array<RiskRecordDto & { username: string; campaignName: string }> = [
+export type DemoRisk = RiskRecordDto & { username: string; campaignName: string };
+export const initialRisks: DemoRisk[] = [
   { id: 'r1', userId: 'u-b', campaignId: 'c1', source: 'ai', riskScore: 65, decision: 'review', reasons: ['短时间内请求频率异常', '设备环境发生变化'], reviewStatus: 'pending', createdAt: new Date(Date.now() - 25 * 60_000).toISOString(), username: 'customer_b', campaignName: '夏日清凉满减券' },
   { id: 'r2', userId: 'u-c', campaignId: 'c2', source: 'rule', riskScore: 100, decision: 'block', reasons: ['10 秒内请求达到 50 次'], reviewStatus: 'pending', createdAt: new Date(Date.now() - 70 * 60_000).toISOString(), username: 'customer_c', campaignName: '新用户专享礼券' }
 ];

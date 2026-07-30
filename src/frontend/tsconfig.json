@@ -9,5 +9,5 @@
     "paths": { "@coupon/shared": ["../shared/src/index.ts"], "@/*": ["src/*"] },
     "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"]
   },
-  "include": ["src", "vite.config.ts"]
+  "include": ["src", "sites", "vite.site.ts", "vite.config.ts", "vite.customer.config.ts", "vite.operator.config.ts", "vite.verifier.config.ts", "vite.admin.config.ts"]
 }

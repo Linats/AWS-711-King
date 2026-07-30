@@ -5,8 +5,8 @@
 - 状态：已认可
 - 最近审阅：本会话；用户于本会话要求分析开发文档并完成项目，视为认可该计划并授权继续实现。
 - 范围基线：主规格、`.aidlc/requirements/` 与 2026-07-29 完成一致性评审的六份设计文档。
-- 当前实现：`src/backend`、`src/frontend`、`src/shared` 为空；以下任务均未执行。
-- 本次修改边界：本会话只建立文档闭环，不修改 `src` 或根工程配置；后续实现从 T-001 顺序开始。
+- 当前实现：`src/shared`、`src/backend`、`src/frontend` 已存在可构建代码；前端已按角色拆分为四个独立站点。各任务勾选状态仍以其验收标准的真实验证证据为准，尚未逐项复核，故保持未完成。
+- 本次修改边界：文档闭环已建立；前端站点拆分见下节“前端站点拆分基线”。
 
 ## 执行规则
 
@@ -14,6 +14,23 @@
 - 文件范围表示该任务允许创建/修改的主要路径；如需越界，先更新任务及追踪矩阵。
 - 依赖版本与脚本由 T-001 以实际 lockfile/package scripts 固化；后续使用真实命令，不把计划命令当成已执行证据。
 - 范围外：微服务、Kubernetes、Redis/CDN、支付、公开注册、批量操作、分享、离线核销和管理员用户管理。
+
+## 前端站点拆分基线
+
+前端不再是单一 SPA，而是四个相互独立的站点，每个站点独立入口、独立端口、独立静态产物，且只打包本角色的页面代码：
+
+| 站点 | 角色 | 开发端口 | 产物 | 入口 |
+|---|---|---|---|---|
+| 优惠券中心（主站） | customer | 5173 | `src/frontend/dist/customer` | `src/frontend/sites/customer/` |
+| 运营控制台 | operator | 5174 | `src/frontend/dist/operator` | `src/frontend/sites/operator/` |
+| 核销终端 | verifier | 5175 | `src/frontend/dist/verifier` | `src/frontend/sites/verifier/` |
+| 数据与审计中心 | admin | 5176 | `src/frontend/dist/admin` | `src/frontend/sites/admin/` |
+
+- 四个站点是四个独立进程：`npm run dev:frontend` 一次拉起全部四个（脚本 `src/frontend/scripts/dev-sites.mjs`），`npm run dev:site:<role>` 单独启动；只起主站时其余站点的超链打不开。
+- 主站承担跨站导航职责：首页与登录页提供其余三个站点的超链，其余站点提供返回主站与切换站点入口；地址由 `VITE_SITE_<ROLE>_URL` 配置。
+- 站点差异化文案（名称、受众、定位、hero、登录提示、可用账号、主题色）集中在 `src/frontend/src/app/site-config.tsx`；站点骨架复用 `src/app/SiteApp.tsx`，页面位于 `src/pages/<role>/`。
+- 站点之间不共享登录态（不同 origin）；后端 `CORS_ORIGIN` 为逗号分隔列表，需覆盖四个站点。
+- 影响任务：T-010（基座与路由改为“站点骨架 + 四站入口”）、T-012~T-016（各角色页面归属各自站点）、T-017（E2E 需按站点分别执行）。文件范围相应扩展到 `src/frontend/sites/**` 与 `src/frontend/vite.*.config.ts`。
 
 ## 任务
 
@@ -177,21 +194,21 @@
 - 验证方式：评分/降级单元测试、审核 API 集成测试、审核与领券并发测试、审计/库存对账。
 - 交付物：AI 风控服务、审核 API、领券集成、审计和测试。
 
-### T-010 前端基座、主题、路由与 API 客户端
+### T-010 前端站点骨架、主题、路由与 API 客户端
 - [ ] 状态：未完成
-- 目标：建立四角色 SPA 布局、响应式主题、查询缓存和可靠 API 客户端。
-- 范围：React Router、角色布局、AntD+Tailwind 主题、亮暗切换、TanStack Query、Axios、错误边界、Toast、骨架/空/错误组件。
+- 目标：建立四个角色站点共用的骨架、响应式主题、查询缓存和可靠 API 客户端，并让每个站点只加载本角色路由。
+- 范围：四站入口（`sites/<role>/index.html` + `main.tsx`）与四份 Vite 配置、站点定义与角色化文案、跨站超链组件、React Router、站点布局、AntD+Tailwind 主题、亮暗切换、TanStack Query、Axios、错误边界、Toast、骨架/空/错误组件。
 - 不包含：业务页面内容和登录表单。
 - Depends on：T-001
 - 需求映射：NFR-002、NFR-005；全部 US 的前端前置。
 - 需求引用：`.aidlc/requirements/non-functional-requirements.md:23`、`:65`。
 - 设计引用：`.aidlc/design/frontend-design.md:7`、`:28`、`:53`、`.aidlc/design/technology-stack.md:64`。
-- 文件范围：`src/frontend/src/app/**`、`layouts/**`、`components/common/**`、`services/api-client*`、`stores/ui*`、`styles/**`、前端测试。
+- 文件范围：`src/frontend/sites/**`、`src/frontend/vite.site.ts`、`src/frontend/vite.*.config.ts`、`src/frontend/src/app/**`、`components/common/**`、`services/api-client*`、`stores/ui*`、`styles/**`、前端测试。
 - [Reference] 外部 API 文档：无待补引用。
-- 实现要点：角色路由表；三档响应式布局；暗色；reduced-motion；统一状态组件；公共 DTO 从 `src/shared` 导入；不加入范围外菜单。
-- 验收标准：四角色路由壳可导航；无权路由显示403；亮暗和三档布局正常；公共 loading/empty/error/retry 可演示；前端构建和组件测试通过。
-- 验证方式：组件测试、路由测试、Vite build、桌面/移动 smoke。
-- 交付物：前端 app 基座、布局、主题、API/Query 配置、通用状态组件和测试。
+- 实现要点：每站只注册本角色路由，其他角色路径为 404；账号角色与站点不符时提示并给出正确站点链接；站点主色通过 CSS 变量注入，避免复制四套样式；三档响应式布局；暗色；reduced-motion；统一状态组件；公共 DTO 从 `src/shared` 导入；不加入范围外菜单。
+- 验收标准：四个站点可分别启动并各自构建出独立产物；站内导航可用，跨站超链可达；亮暗和三档布局正常；公共 loading/empty/error/retry 可演示；前端构建和组件测试通过。
+- 验证方式：组件测试、路由测试、四份 Vite build、四端口并行 smoke、桌面/移动检查。
+- 交付物：四站入口与构建配置、站点定义与文案层、共享骨架/布局/主题、API/Query 配置、通用状态组件和测试。
 
 ### T-011 登录、会话恢复与角色导航前端
 - [ ] 状态：未完成

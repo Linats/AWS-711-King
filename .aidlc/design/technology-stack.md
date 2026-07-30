@@ -27,7 +27,7 @@
 ```text
 project-root/
 ├─ src/backend/    # Express、Prisma、后端测试
-├─ src/frontend/   # React + Vite、前端测试
+├─ src/frontend/   # React + Vite；sites/<role> 为四个角色站点入口，src/ 为共享代码与页面
 ├─ src/shared/     # DTO、枚举、错误码
 └─ .aidlc/         # 需求、设计、任务和计划
 ```
@@ -72,8 +72,10 @@ project-root/
 ## 6. 单机开发与部署
 
 - 开发依赖：Node.js 20、npm 10、PostgreSQL 16。本期可以直接安装 PostgreSQL；若使用容器，仅用于本机数据库便利，不扩展为服务编排架构。
-- 开发端口：前端 5173、后端 3000、数据库 5432。
-- 正式单机运行前端静态文件、一个 Node.js 后端实例和 PostgreSQL 16；反向代理可选。
+- 开发端口：前端四个角色站点分别为 5173（用户主站）、5174（运营控制台）、5175（核销终端）、5176（数据与审计中心）；后端 3000、数据库 5432。
+- 四个站点是四个独立进程：`npm run dev:frontend` 一次拉起全部四个（Ctrl+C 一起停止），单独调试用 `npm run dev:site:<role>`。跨站超链要求目标端口已有服务，否则链接打不开。
+- 正式单机运行四份前端静态产物（`src/frontend/dist/<site>`）、一个 Node.js 后端实例和 PostgreSQL 16；反向代理可选，用于把四个站点挂到不同域名或路径。
+- 后端 `CORS_ORIGIN` 为逗号分隔的多 origin 列表，需覆盖全部四个站点地址。
 - 不采用 Kubernetes、负载均衡、PM2 cluster、Redis、CDN、Prometheus/Grafana、ELK 或第三方错误平台作为本期必需技术。
 
 ## 7. 配置与秘密

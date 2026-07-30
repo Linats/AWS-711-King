@@ -6,7 +6,7 @@ import express, { type Request } from 'express';
 import helmet from 'helmet';
 import { z } from 'zod';
 import type { CampaignStatus, Role } from '@coupon/shared';
-import { config } from './config.js';
+import { config, corsOrigins } from './config.js';
 import { databaseFile, db, type Campaign } from './db/store.js';
 import { BedrockService } from './integrations/bedrock.js';
 import { allowRoles, authenticate, createRefreshToken, hashToken, signAccessToken } from './lib/auth.js';
@@ -14,7 +14,7 @@ import { AppError, asyncHandler, errorHandler, notFoundHandler, ok, pageArgs, pa
 import { logger } from './lib/logger.js';
 
 const app=express(), bedrock=new BedrockService();
-app.disable('x-powered-by'); app.use(helmet()); app.use(cors({origin:config.CORS_ORIGIN,credentials:true})); app.use(express.json({limit:'1mb'})); app.use(cookieParser());
+app.disable('x-powered-by'); app.use(helmet()); app.use(cors({origin:corsOrigins,credentials:true})); app.use(express.json({limit:'1mb'})); app.use(cookieParser());
 app.use((req,res,next)=>{req.id=String(req.headers['x-request-id']??randomUUID());res.setHeader('X-Request-ID',String(req.id));const started=Date.now();res.on('finish',()=>logger.info({requestId:String(req.id),method:req.method,path:req.path,status:res.statusCode,durationMs:Date.now()-started},'request'));next();});
 const pageSchema=z.object({page:z.coerce.number().int().min(1).default(1),pageSize:z.coerce.number().int().min(1).max(100).default(20)});
 const dtoUser=(u:{id:string;username:string;displayName:string;role:Role})=>({id:u.id,username:u.username,displayName:u.displayName,role:u.role});

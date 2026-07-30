@@ -4,11 +4,24 @@
 
 前端固定使用 React 18 + TypeScript + Vite，代码位于根目录 `src/frontend`，共享 DTO/枚举来自 `src/shared`。采用 Ant Design、Tailwind CSS、Zustand、TanStack Query、Axios、React Router、Recharts 和 Framer Motion。前端不实现注册、批量活动操作、分享、离线核销或未定义的管理员用户管理。
 
+前端按角色拆分为**四个相互独立的站点**，每个站点独立入口、独立端口、独立构建产物，只包含本角色的页面代码：
+
+| 站点 | 角色 | 定位 | 开发端口 | 产物目录 |
+|---|---|---|---|---|
+| 优惠券中心（主站） | customer | 面向普通用户领券用券，并提供其他三个站点的超链入口 | 5173 | `dist/customer` |
+| 运营控制台 | operator | 活动全生命周期与风控人工审核 | 5174 | `dist/operator` |
+| 核销终端 | verifier | 券码核销与核销记录 | 5175 | `dist/verifier` |
+| 数据与审计中心 | admin | 指标、风控告警只读与审计日志 | 5176 | `dist/admin` |
+
+四个站点是四个独立进程，各自监听自己的端口：开发时用 `npm run dev:frontend` 一次启动全部四个，或用 `npm run dev:site:<role>` 单独启动；只启动主站时其余站点的超链无法打开。生产部署需要四份静态产物分别由域名/端口提供服务。
+
 ## 2. 信息架构与路由
 
-| 路由 | 角色 | 页面职责 | 需求/故事 |
+各站点只注册自己角色的路由，其他角色的路径在本站点表现为 404；路径保留角色前缀以保持与下表一致。
+
+| 路由 | 站点/角色 | 页面职责 | 需求/故事 |
 |---|---|---|---|
-| `/login` | 公开 | 登录、错误反馈 | FR-001、US-012 |
+| `/login` | 各站点公开 | 登录、错误反馈、角色不匹配引导至正确站点 | FR-001、US-012 |
 | `/customer` | customer | 可领取活动、AI/规则推荐、领券 | FR-003/006/007、US-003/004/006 |
 | `/customer/my-coupons` | customer | 券包状态筛选与排序 | FR-008、US-005 |
 | `/customer/coupons/:id` | customer | 已有券详情 | FR-008 |
@@ -23,22 +36,28 @@
 | `/admin/stats` | admin | 时间筛选、趋势与分布图 | FR-005、US-009 |
 | `/admin/audit-logs` | admin | 审计日志筛选、分页、详情摘要 | NFR-005/007 |
 
-根路由根据已登录角色跳转角色首页；未知路由显示 404。路由守卫处理未登录跳转和角色不匹配 403 页面，但权限安全仍由后端保证。
+站点根路由跳转本站角色首页；未知路由显示 404。路由守卫处理未登录跳转，账号角色与站点不匹配时显示 403 并给出正确站点链接，但权限安全仍由后端保证。
 
 ## 3. 工程结构
 
 ```text
-src/frontend/src/
-├─ app/                 # Router、QueryClient、主题、错误边界
-├─ layouts/             # 四角色共享布局和导航
-├─ pages/               # auth/customer/operator/verifier/admin
-├─ features/            # auth、campaign、claim、coupon、verify、risk、stats、audit
-├─ components/          # CouponCard、状态组件、图表、筛选器
-├─ stores/              # auth 与 UI 偏好；不复制服务端业务数据
-├─ services/            # Axios 客户端、token 刷新协调
-├─ styles/              # Tailwind、主题和动画
-└─ types/               # 前端局部类型；公共契约从 src/shared 导入
+src/frontend/
+├─ sites/                       # 四个站点入口，每个含 index.html（角色化 title/description）与 main.tsx（本站路由表）
+│  ├─ customer/ operator/ verifier/ admin/
+├─ vite.site.ts                 # 站点配置工厂：root、端口、产物目录
+├─ vite.<site>.config.ts         # 四份构建配置
+├─ vite.config.ts               # 仅供 vitest 与编辑器工具链使用
+└─ src/
+   ├─ app/                      # SiteApp 骨架（登录 + 布局 + 路由）、site-config（角色化文案与跨站 URL）、demo store
+   ├─ pages/                    # customer/operator/verifier/admin，各站点只导入自己的目录
+   ├─ components/               # 共享组件：状态组件、Metric、CouponCard、跨站入口 SiteLinks
+   ├─ stores/                   # auth 与 UI 偏好；不复制服务端业务数据
+   ├─ services/                 # Axios 客户端、token 刷新协调
+   ├─ styles/                   # Tailwind、主题和动画；站点主色通过 CSS 变量注入
+   └─ types/                    # 前端局部类型；公共契约从 src/shared 导入
 ```
+
+站点差异（名称、定位、hero 文案、登录提示、可用账号、主题色、导航、跨站链接文案）集中在 `src/app/site-config.tsx`，页面文案按角色在各自 `pages/<role>` 内表述，避免四套重复骨架。
 
 TanStack Query 管理服务端数据、缓存和失效；Zustand 仅管理当前用户/access token、主题和布局状态。
 
@@ -83,14 +102,21 @@ TanStack Query 管理服务端数据、缓存和失效；Zustand 仅管理当前
 - 首页显示近期风控告警只读列表。
 - 审计日志页支持操作人、动作、资源、结果、时间筛选；详情不展示已脱敏原值或 token。
 
-## 6. 导航与权限可见性
+## 6. 导航、跨站入口与权限可见性
 
-| 角色 | 导航 |
+| 站点/角色 | 站内导航 |
 |---|---|
-| customer | 首页、我的券包 |
-| operator | 运营首页、活动管理、风控审核 |
-| verifier | 核销、核销记录 |
-| admin | 统计概览、详细统计、审计日志 |
+| customer（主站） | 发现优惠、我的券包 |
+| operator | 运营概览、活动管理、风控审核 |
+| verifier | 快速核销、核销记录 |
+| admin | 数据总览、数据分析、审计日志 |
+
+跨站入口规则：
+
+- 主站首页提供三张站点卡片超链（含角色定位、职责描述与可用演示账号），登录页提供同样的紧凑超链，登录前也能找到其他站点。
+- 三个后台站点在侧栏提供“返回优惠券中心”超链，顶栏提供切换到其余站点的下拉超链。
+- 跨站地址来自 `VITE_SITE_CUSTOMER_URL` / `VITE_SITE_OPERATOR_URL` / `VITE_SITE_VERIFIER_URL` / `VITE_SITE_ADMIN_URL`，未配置时回退到本地开发端口。
+- 站点之间不共享登录态（不同 origin），在错误站点登录时给出“该账号属于 X 角色，请前往 Y 站点”的提示与跳转。
 
 前端不得根据客户端传入角色伪造菜单；菜单来自认证用户角色的本地映射。直接访问无权路由显示 403 并记录客户端错误上下文，后端仍返回 403。
 

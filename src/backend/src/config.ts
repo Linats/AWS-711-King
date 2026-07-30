@@ -7,7 +7,8 @@ const envSchema = z.object({
   JWT_ACCESS_SECRET: z.string().min(16).default('development-only-jwt-secret-change-me'),
   ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(86400),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
-  CORS_ORIGIN: z.string().default('http://localhost:5173'),
+  // 四个角色站点各自一个 origin，逗号分隔
+  CORS_ORIGIN: z.string().default('http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:5176'),
   COOKIE_NAME: z.string().default('coupon_refresh'),
   AWS_REGION: z.string().default('us-east-1'),
   BEDROCK_AUTH_MODE: z.enum(['sdk', 'api_key']).default('sdk'),
@@ -29,3 +30,6 @@ if (parsed.data.BEDROCK_AUTH_MODE === 'api_key' && !parsed.data.BEDROCK_API_KEY 
 }
 
 export const config = parsed.data;
+
+/** 允许的前端 origin 列表：customer 主站与 operator/verifier/admin 三个独立站点 */
+export const corsOrigins = config.CORS_ORIGIN.split(',').map((origin) => origin.trim()).filter(Boolean);

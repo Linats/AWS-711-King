@@ -6,7 +6,11 @@
   "engines": { "node": ">=20.0.0", "npm": ">=10.0.0" },
   "scripts": {
     "dev:backend": "npm run dev -w @coupon/backend",
-    "dev:frontend": "npm run dev -w @coupon/frontend",
+    "dev:frontend": "npm run dev:sites -w @coupon/frontend",
+    "dev:site:customer": "npm run dev:customer -w @coupon/frontend",
+    "dev:site:operator": "npm run dev:operator -w @coupon/frontend",
+    "dev:site:verifier": "npm run dev:verifier -w @coupon/frontend",
+    "dev:site:admin": "npm run dev:admin -w @coupon/frontend",
     "build": "npm run build -w @coupon/shared && npm run build -w @coupon/backend && npm run build -w @coupon/frontend",
     "typecheck": "npm run typecheck -w @coupon/shared && npm run typecheck -w @coupon/backend && npm run typecheck -w @coupon/frontend",
     "test": "npm run test -w @coupon/backend && npm run test -w @coupon/frontend",
